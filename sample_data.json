@@ -1,0 +1,18 @@
+{
+  "movies": [
+    {
+      "title": "Интерстеллар",
+      "genre": "Фантастика",
+      "year": 2014
+    }
+  ],
+  "users": [
+    {
+      "name": "Даниил",
+      "has_subscription": true,
+      "watched": [
+        "Интерстеллар"
+      ]
+    }
+  ]
+}

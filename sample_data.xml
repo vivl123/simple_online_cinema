@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cinema>
+  <movies>
+    <movie>
+      <title>Интерстеллар</title>
+      <genre>Фантастика</genre>
+      <year>2014</year>
+    </movie>
+  </movies>
+  <users>
+    <user>
+      <name>Даниил</name>
+      <has_subscription>true</has_subscription>
+      <watched>
+        <title>Интерстеллар</title>
+      </watched>
+    </user>
+  </users>
+</cinema>
