@@ -1,56 +1,59 @@
-import json
 import xml.etree.ElementTree as ET
-from cinema import Cinema
-from movie import Movie
-from user import User
-from errors import CinemaError
+
+import account_actions
+import cinema_actions
 import storage
+from cinema import Cinema
+from errors import CinemaError
+from menu import show_menu
 
 
-cinema = Cinema()
+def main():
+    cinema = Cinema()
+    user = None
 
-while True:
-    print("\n1 Фильмы  2 Добавить фильм  3 Добавить пользователя  4 Смотреть")
-    print("5 Сохранить JSON  6 Загрузить JSON  7 Сохранить XML  8 Загрузить XML  0 Выход")
-    command = input("Команда: ")
+    while True:
+        show_menu(user)
+        command = input("  Выберите действие → ").strip()
 
-    try:
         if command == "0":
+            print("  До встречи!")
             break
-        elif command == "1":
-            for movie in cinema.movies:
-                print(movie.title, "—", movie.genre, movie.year)
-        elif command == "2":
-            title = input("Название: ")
-            genre = input("Жанр: ")
-            year = int(input("Год: "))
-            cinema.add_movie(Movie(title, genre, year))
-            print("Фильм добавлен")
-        elif command == "3":
-            name = input("Имя: ")
-            answer = input("Есть подписка? да/нет: ").lower()
-            if answer not in ("да", "нет"):
-                raise CinemaError("Ответьте да или нет")
-            cinema.add_user(User(name, answer == "да"))
-            print("Пользователь добавлен")
-        elif command == "4":
-            user = cinema.find_user(input("Имя пользователя: "))
-            movie = cinema.find_movie(input("Название фильма: "))
-            user.watch(movie)
-            print("Просмотр записан")
-        elif command == "5":
-            storage.save_json(cinema, input("Имя файла: "))
-            print("JSON сохранён")
-        elif command == "6":
-            cinema = storage.load_json(input("Имя файла: "))
-            print("JSON загружен")
-        elif command == "7":
-            storage.save_xml(cinema, input("Имя файла: "))
-            print("XML сохранён")
-        elif command == "8":
-            cinema = storage.load_xml(input("Имя файла: "))
-            print("XML загружен")
-        else:
-            print("Нет такой команды")
-    except (CinemaError, ValueError, OSError, json.JSONDecodeError, ET.ParseError) as error:
-        print("Ошибка:", error)
+
+        if command in {"3", "4", "7", "8", "9"} and user is None:
+            print("  Сначала создайте пользователя (5) или выберите его (6).")
+            continue
+
+        try:
+            if command == "1":
+                cinema_actions.show_movies(cinema)
+            elif command == "2":
+                cinema_actions.add_movie(cinema)
+            elif command == "3":
+                cinema_actions.watch_movie(cinema, user)
+            elif command == "4":
+                cinema_actions.show_recommendations(cinema, user)
+            elif command == "5":
+                user = account_actions.create_user(cinema)
+            elif command == "6":
+                user = account_actions.select_user(cinema, user)
+            elif command == "7":
+                account_actions.deposit(user)
+            elif command == "8":
+                account_actions.buy_plan(user)
+            elif command == "9":
+                cinema_actions.show_history(cinema, user)
+            elif command in {"10", "11"}:
+                loaded = storage.file_menu(cinema, saving=(command == "10"))
+                if loaded is not None:
+                    cinema = loaded
+                    user = None
+            else:
+                print("  Выберите действие от 0 до 11.")
+
+        except (CinemaError, ValueError, OSError, ET.ParseError) as error:
+            print(f"  Ошибка: {error}")
+
+
+if __name__ == "__main__":
+    main()

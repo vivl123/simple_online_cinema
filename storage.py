@@ -5,7 +5,7 @@ from cinema import Cinema
 from movie import Movie
 from user import User
 from errors import CinemaError
-
+from menu import choose_item, read_filename
 
 def save_json(cinema, filename):
     data = {"movies": [], "users": []}
@@ -83,3 +83,29 @@ def load_xml(filename):
             user.watched.append(title.text)
         cinema.add_user(user)
     return cinema
+def file_menu(cinema, saving):
+    """Возвращает новый каталог только после успешной загрузки."""
+    action = "Сохранить каталог" if saving else "Загрузить каталог"
+    file_format = choose_item(action, ["JSON", "XML"])
+
+    if file_format is None:
+        return None
+
+    filename = read_filename(file_format)
+
+    if saving:
+        if file_format == "JSON":
+            save_json(cinema, filename)
+        else:
+            save_xml(cinema, filename)
+
+        print(f"  ✓ Каталог сохранён в {filename}.")
+        return None
+
+    if file_format == "JSON":
+        loaded = load_json(filename)
+    else:
+        loaded = load_xml(filename)
+
+    print("  ✓ Каталог загружен. Выберите пользователя через пункт 6.")
+    return loaded
