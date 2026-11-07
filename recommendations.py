@@ -1,48 +1,39 @@
+"""Простые рекомендации на основе истории просмотров."""
+from cinema import Cinema
+from movie import Movie
 from subscription import PLANS
-
-
-class ViewingStats:
-    def __init__(self, cinema, user):
-        self.total_views = len(user.watched)
-        self.genre_counts = {}
-
-        for title in user.watched:
-            movie = cinema.find_movie(title)
-            genre = movie.genre.strip().lower()
-            self.genre_counts[genre] = self.genre_counts.get(genre, 0) + 1
-
-    def favorite_genres(self):
-        if not self.genre_counts:
-            return []
-
-        maximum = max(self.genre_counts.values())
-        return [
-            genre for genre, count in self.genre_counts.items()
-            if count == maximum
-        ]
+from user import User
 
 
 class MovieRecommender:
-    def __init__(self, cinema):
+    """Считает любимые жанры и предлагает доступные новые фильмы."""
+
+    def __init__(self, cinema: Cinema) -> None:
         self.cinema = cinema
 
-    def recommend(self, user):
-        if not user.has_subscription:
+    def genre_counts(self, user: User) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for title in user.watched:
+            movie = self.cinema.find_movie(title)
+            genre = movie.genre.lower()
+            counts[genre] = counts.get(genre, 0) + 1
+        return counts
+
+    def recommend(self, user: User) -> list[Movie]:
+        if user.account.plan_id is None:
+            return []
+        counts = self.genre_counts(user)
+        if not counts:
             return []
 
         plan = PLANS[user.account.plan_id]
-        stats = ViewingStats(self.cinema, user)
-        favorites = stats.favorite_genres()
-        watched = set(user.watched)
+        maximum = max(counts.values())
         result = []
-
         for movie in self.cinema.movies:
-            genre = movie.genre.strip().lower()
-
-            if movie.title in watched:
+            if movie.title in user.watched:
                 continue
-
-            if genre in favorites and plan.allows(movie.genre):
+            if not plan.allows(movie.genre):
+                continue
+            if counts.get(movie.genre.lower(), 0) == maximum:
                 result.append(movie)
-
         return result

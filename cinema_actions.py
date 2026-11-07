@@ -1,85 +1,96 @@
-from menu import choose_item, show_section
+"""Команды каталога и просмотров."""
+from cinema import Cinema
+from menu import Menu
 from movie import Movie
-from movie_catalog import MOVIE_CATALOG
+from movie_catalog import MOVIE_CATALOG, movies_in_genre
 from recommendations import MovieRecommender
-from recommendations import MovieRecommender, ViewingStats
+from user import User
 
 
-def movie_label(movie):
-    return f"{movie.title} ({movie.year}) · {movie.genre}"
-
-
-def show_movies(cinema):
-    show_section("Каталог кинотеатра")
-
+def show_movies(cinema: Cinema, menu: Menu) -> None:
+    menu.section("Каталог")
     if not cinema.movies:
-        print("  Каталог пуст. Добавьте фильм через пункт 2.")
-        return
-
-    for number, movie in enumerate(cinema.movies, start=1):
-        print(f"  {number:>2}. {movie_label(movie)}")
+        print("  Каталог пуст.")
+    for movie in cinema.movies:
+        print(" ", menu.movie_label(movie))
 
 
-def add_movie(cinema):
-    genre = choose_item("Выберите жанр", list(MOVIE_CATALOG))
+def select_catalog_movie(cinema: Cinema, menu: Menu) -> Movie | None:
+    genre = menu.choose("Жанр", list(MOVIE_CATALOG))
     if genre is None:
-        return
-
-    selected = choose_item(
-        f"Выберите фильм · {genre}",
-        MOVIE_CATALOG[genre],
-        lambda film: f"{film[0]} ({film[1]})",
+        return None
+    return menu.choose(
+        "Фильм", movies_in_genre(genre),
+        menu.movie_label,
     )
-    if selected is None:
+
+
+def add_movie(cinema: Cinema, menu: Menu) -> None:
+    movie = select_catalog_movie(cinema, menu)
+    if movie is not None:
+        cinema.add_movie(movie)
+        print("  Фильм добавлен.")
+
+
+def update_movie(cinema: Cinema, menu: Menu) -> None:
+    old = menu.choose(
+        "Какую запись изменить?", cinema.movies,
+        menu.movie_label,
+    )
+    if old is None:
         return
+    # Новые данные также берутся из справочника, чтобы не менять жанр
+    # произвольным вводом. История обновляется внутри Cinema.
+    new = select_catalog_movie(cinema, menu)
+    if new is None:
+        return
+    if menu.confirm("Заменить запись и обновить её в истории?"):
+        cinema.update_movie(
+            old.title, new.title, new.genre, new.year
+        )
+        print("  Запись обновлена.")
 
-    title, year = selected
-    movie = Movie(title, genre, year)
-    cinema.add_movie(movie)
-    print(f"   Добавлен фильм: {movie_label(movie)}")
+
+def delete_movie(cinema: Cinema, menu: Menu) -> None:
+    movie = menu.choose(
+        "Удалить фильм", cinema.movies, menu.movie_label
+    )
+    if movie is not None and menu.confirm(
+        "Удалить фильм и все записи о его просмотрах?"
+    ):
+        cinema.delete_movie(movie.title)
+        print("  Фильм удалён.")
 
 
-def watch_movie(cinema, user):
-    movie = choose_item("Что смотрим?", cinema.movies, movie_label)
+def watch_movie(cinema: Cinema, menu: Menu, user: User) -> None:
+    movie = menu.choose(
+        "Что смотрим?", cinema.movies, menu.movie_label
+    )
     if movie is not None:
         user.watch(movie)
-        print(f"   «{movie.title}» добавлен в историю просмотров.")
+        print("  Просмотр записан.")
 
 
-def show_recommendations(cinema, user):
-    show_section("Ваши рекомендации")
-
+def show_recommendations(cinema: Cinema, menu: Menu, user: User) -> None:
+    menu.section("Рекомендации")
     if not user.has_subscription:
-        print("  Подключите тариф через пункт 8.")
+        print("  Подключите тариф.")
         return
-
     if not user.watched:
-        print("  Посмотрите первый фильм через пункт 3.")
+        print("  Сначала посмотрите фильм.")
         return
-
     movies = MovieRecommender(cinema).recommend(user)
     if not movies:
-        print("  По вашему тарифу пока нет новых фильмов любимых жанров.")
-        return
-
-    for number, movie in enumerate(movies, start=1):
-        print(f"  {number:>2}. {movie_label(movie)}")
+        print("  Доступных новых фильмов любимых жанров пока нет.")
+    for movie in movies:
+        print(" ", menu.movie_label(movie))
 
 
-def show_history(cinema, user):
-    show_section(f"История просмотров · {user.name}")
-
-    if not user.watched:
-        print("  Вы пока не смотрели фильмы.")
-        return
-
-    for number, title in enumerate(user.watched, start=1):
-        print(f"  {number:>2}. {title}")
-
-    stats = ViewingStats(cinema, user)
-    print(f"\n  Всего просмотров: {stats.total_views}")
-
-    for genre, count in stats.genre_counts.items():
-        print(f"  {genre.capitalize()}: {count}")
-
-    print("  Любимые жанры:", ", ".join(stats.favorite_genres()))
+def show_history(cinema: Cinema, menu: Menu, user: User) -> None:
+    menu.section("История просмотров")
+    for title in user.watched:
+        print(" ", title)
+    print(f"  Всего просмотров: {len(user.watched)}")
+    counts = MovieRecommender(cinema).genre_counts(user)
+    for genre, count in counts.items():
+        print(f"  {genre}: {count}")

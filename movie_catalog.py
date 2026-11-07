@@ -1,3 +1,6 @@
+"""Справочник доступных фильмов с заданными жанрами."""
+from movie import Movie
+
 
 MOVIE_CATALOG = {
     "Фантастика": [
@@ -18,3 +21,11 @@ MOVIE_CATALOG = {
         ("Синистер", 2012),
     ],
 }
+
+
+def movies_in_genre(genre: str) -> list[Movie]:
+    """Получить фильмы выбранного жанра из готового справочника."""
+    movies = []
+    for title, year in MOVIE_CATALOG[genre]:
+        movies.append(Movie(title, genre, year))
+    return movies
